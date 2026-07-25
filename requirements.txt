@@ -1,4 +1,4 @@
-o
+os
 csv
 smtplib
 random
