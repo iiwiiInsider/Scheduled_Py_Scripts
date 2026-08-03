@@ -19,6 +19,9 @@ on:
   # This adds a "Run workflow" button so you can test manually
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   run:
     runs-on: ubuntu-latest
