@@ -3,14 +3,22 @@ import csv
 import smtplib
 import random
 import datetime
+import json
 
 EMAIL = os.environ.get("MY_EMAIL")
 PASSWORD = os.environ.get("MY_PASSWORD")
+SENT_BIRTHDAYS_FILE = "sent_birthdays.json"
 
 today = datetime.datetime.now()
 today_tuple = (today.month, today.day)
 
 birthdays_dict = {}
+
+try:
+    with open(SENT_BIRTHDAYS_FILE) as sent_file:
+        sent_birthdays = json.load(sent_file)
+except FileNotFoundError:
+    sent_birthdays = {}
 
 with open("birthdays.csv", newline='') as file:
     raw_header = file.readline().strip()
@@ -37,19 +45,27 @@ with open("birthdays.csv", newline='') as file:
 
 if today_tuple in birthdays_dict:
     birthday_person = birthdays_dict[today_tuple]
+    birthday_key = f"{today.year}:{birthday_person['email']}"
 
-    file_path = f"letter_templates/letter_{random.randint(1, 3)}.txt"
+    if birthday_key in sent_birthdays:
+        print(f"Birthday email already sent to {birthday_person['email']} this year.")
+    else:
+        file_path = f"letter_templates/letter_{random.randint(1, 3)}.txt"
 
-    with open(file_path) as letter_file:
-        contents = letter_file.read().replace("[NAME]", birthday_person["name"])
+        with open(file_path) as letter_file:
+            contents = letter_file.read().replace("[NAME]", birthday_person["name"])
 
-    with smtplib.SMTP("smtp.gmail.com") as connection:
-        connection.starttls()
-        connection.login(EMAIL, PASSWORD)
-        connection.sendmail(
-            from_addr=EMAIL,
-            to_addrs=birthday_person["email"],
-            msg=f"Subject:Happy Birthday!\n\n{contents}"
-        )
+        with smtplib.SMTP("smtp.gmail.com") as connection:
+            connection.starttls()
+            connection.login(EMAIL, PASSWORD)
+            connection.sendmail(
+                from_addr=EMAIL,
+                to_addrs=birthday_person["email"],
+                msg=f"Subject:Happy Birthday!\n\n{contents}"
+            )
+
+        sent_birthdays[birthday_key] = today.isoformat()
+        with open(SENT_BIRTHDAYS_FILE, "w") as sent_file:
+            json.dump(sent_birthdays, sent_file, indent=2)
 
 print("Script executed successfully.")
